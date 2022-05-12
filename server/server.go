@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/athoune/fluent-server/server"
@@ -10,14 +12,18 @@ import (
 )
 
 type Server struct {
-	fluentd *server.Server
-	redis   *redis.Client
-	stream  string
+	fluentd   *server.Server
+	redis     *redis.Client
+	Stream    string
+	marshaler func(interface{}) ([]byte, error)
+	MaxLen    int64
 }
 
 func New(redisHost string) (*Server, error) {
 	s := &Server{
-		stream: "fluentd",
+		Stream:    "fluentd",
+		marshaler: json.Marshal,
+		MaxLen:    1024,
 	}
 	var err error
 	s.fluentd, err = server.New(s.Handle)
@@ -41,11 +47,27 @@ func New(redisHost string) (*Server, error) {
 
 func (s *Server) Handle(tag string, time *time.Time, record map[string]interface{}) error {
 	ctx := context.TODO()
+	values := make([]interface{}, len(record)*2)
+	i := 0
+	var err error
+	for k, v := range record {
+		values[i*2] = k
+		if reflect.ValueOf(v).Kind() == reflect.String {
+			values[i*2+1] = v
+		} else {
+			values[i*2+1], err = s.marshaler(v)
+			if err != nil {
+				return err
+			}
+		}
+		i++
+	}
 	cmd := s.redis.XAdd(ctx, &redis.XAddArgs{
-		Stream: s.stream,
-		Values: record,
+		MaxLen: s.MaxLen,
+		Stream: s.Stream,
+		Values: values,
 	})
-	err := s.redis.Process(ctx, cmd)
+	err = s.redis.Process(ctx, cmd)
 	if err != nil {
 		return err
 	}
