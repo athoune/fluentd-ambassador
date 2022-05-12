@@ -14,6 +14,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+var (
+	logLines = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ambassador_loglines_cpt",
+		Help: "Number of lines treated",
+	})
+)
+
 type Server struct {
 	fluentd   *server.Server
 	redis     *redis.Client
@@ -93,6 +100,7 @@ func (s *Server) Handle(tag string, time *time.Time, record map[string]interface
 		return err
 	}
 	fmt.Println(cmd.Result())
+	logLines.Inc()
 
 	return nil
 }
