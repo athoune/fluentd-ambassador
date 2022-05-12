@@ -1,9 +1,11 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/athoune/fluentd-ambassador/server"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -19,6 +21,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	prom := os.Getenv("PROMETHEUS")
+	if prom == "" {
+		prom = ":2112"
+	}
+	http.Handle("/metrics", promhttp.Handler())
+	go http.ListenAndServe(prom, nil)
 	err = s.Listen(listen)
 	if err != nil {
 		panic(err)

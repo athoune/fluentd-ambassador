@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 
 	"github.com/athoune/fluent-server/server"
 	"github.com/go-redis/redis/v8"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Server struct {
@@ -17,6 +20,7 @@ type Server struct {
 	Stream    string
 	marshaler func(interface{}) ([]byte, error)
 	MaxLen    int64
+	gauge     prometheus.GaugeFunc
 }
 
 func New(redisHost string) (*Server, error) {
@@ -41,8 +45,23 @@ func New(redisHost string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.gauge = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: fmt.Sprintf("ambassador_stream_%s_percent", s.Stream),
+		Help: "Length of the redis stream",
+	}, s.QueueLenght)
 
 	return s, nil
+}
+
+func (s *Server) QueueLenght() float64 {
+	ctx := context.TODO()
+	cmd := s.redis.XLen(ctx, s.Stream)
+	err := s.redis.Process(ctx, cmd)
+	if err != nil {
+		log.Println(err)
+		return -1
+	}
+	return 100 * float64(cmd.Val()) / float64(s.MaxLen)
 }
 
 func (s *Server) Handle(tag string, time *time.Time, record map[string]interface{}) error {
