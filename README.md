@@ -16,3 +16,5 @@ a VM
 +-----------------------+
 
 ```
+
+You can watch the queue size (in percent) throught the prometheus endpoint.
