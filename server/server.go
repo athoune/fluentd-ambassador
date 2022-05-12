@@ -47,8 +47,10 @@ func New(redisHost string) (*Server, error) {
 
 func (s *Server) Handle(tag string, time *time.Time, record map[string]interface{}) error {
 	ctx := context.TODO()
-	values := make([]interface{}, len(record)*2)
-	i := 0
+	values := make([]interface{}, len(record)*2+2)
+	values[0] = "@tag"
+	values[1] = tag
+	i := 1
 	var err error
 	for k, v := range record {
 		values[i*2] = k
