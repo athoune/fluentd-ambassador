@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/athoune/fluent-server/defaultreader"
+	"github.com/athoune/fluent-server/options"
 	"github.com/athoune/fluent-server/server"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,8 +38,11 @@ func New(redisHost string) (*Server, error) {
 		marshaler: json.Marshal,
 		MaxLen:    1024,
 	}
+	cfg := &options.FluentOptions{
+		MessagesReaderFactory: defaultreader.DefaultMessagesReaderFactory(s.Handle),
+	}
 	var err error
-	s.fluentd, err = server.New(s.Handle)
+	s.fluentd, err = server.New(cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -3,9 +3,9 @@ module github.com/athoune/fluentd-ambassador
 go 1.18
 
 require (
-	github.com/athoune/fluent-server v0.4.3
+	github.com/athoune/fluent-server v0.5.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 )
 
 require (
